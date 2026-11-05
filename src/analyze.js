@@ -47,7 +47,7 @@ export function fmtNative (amount, ctx) {
 
 export const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '?')
 
-export function nameFor (address, ctx = {}) {
+export function nameFor (address, ctx = {}, { full = false } = {}) {
   const a = lc(address)
   const book = ctx.addressBook?.find((e) => lc(e.address) === a)
   if (book) return `${book.name} (${short(a)})`
@@ -55,7 +55,8 @@ export function nameFor (address, ctx = {}) {
   if (sp) return `${sp} (${short(a)})`
   const t = tokenInfo(a, ctx)
   if (t) return `${t.symbol} contract (${short(a)})`
-  return short(a)
+  // Unknown recipients are shown in full: poisoning relies on shortened forms.
+  return full ? a : short(a)
 }
 
 /**
@@ -184,13 +185,18 @@ export function verdictOf (findings) {
 
 /** Describe each action in a single plain sentence. */
 export function describeAction (a, ctx = {}) {
+  const sym = (t) => tokenInfo(t, ctx)?.symbol ?? short(t)
+  const via = `${a.permit2 ? ' (via Permit2)' : ''}${a.viaPermit ? ' (via permit)' : ''}`
   switch (a.type) {
-    case 'native-transfer': return `Send ${fmtNative(a.amount, ctx)} to ${nameFor(a.to, ctx)}`
-    case 'token-transfer': return `Send ${fmtAmount(a.amount, a.token, ctx)} to ${nameFor(a.to, ctx)}`
-    case 'token-transfer-from': return `Move ${fmtAmount(a.amount, a.token, ctx)} from ${nameFor(a.from, ctx)} to ${nameFor(a.to, ctx)}`
-    case 'token-approve': return `${a.amount === 0n ? 'Revoke' : 'Allow'} ${nameFor(a.spender, ctx)} ${a.amount === 0n ? 'from spending' : `to spend ${fmtAmount(a.amount, a.token, ctx)} of`} your ${tokenInfo(a.token, ctx)?.symbol ?? short(a.token)}${a.permit2 ? ' (via Permit2)' : ''}${a.viaPermit ? ' (via permit)' : ''}`
+    case 'native-transfer': return `Send ${fmtNative(a.amount, ctx)} to ${nameFor(a.to, ctx, { full: true })}`
+    case 'token-transfer': return `Send ${fmtAmount(a.amount, a.token, ctx)} to ${nameFor(a.to, ctx, { full: true })}`
+    case 'token-transfer-from': return `Move ${fmtAmount(a.amount, a.token, ctx)} from ${nameFor(a.from, ctx, { full: true })} to ${nameFor(a.to, ctx, { full: true })}`
+    case 'token-approve':
+      return a.amount === 0n
+        ? `Revoke ${nameFor(a.spender, ctx)}'s permission to spend your ${sym(a.token)}${via}`
+        : `Allow ${nameFor(a.spender, ctx)} to spend ${a.amount >= UNLIMITED || a.amount === UINT160_MAX ? '' : 'up to '}${fmtAmount(a.amount, a.token, ctx)} from your wallet${via}`
     case 'nft-approve-all': return `${a.approved ? 'Give' : 'Remove'} ${nameFor(a.operator, ctx)} ${a.approved ? 'control of' : 'from'} all your NFTs in ${short(a.collection)}`
-    case 'nft-transfer': return `Transfer NFT${a.tokenIds ? 's' : ` #${a.tokenId}`} from ${short(a.collection)} to ${nameFor(a.to, ctx)}`
+    case 'nft-transfer': return `Transfer NFT${a.tokenIds ? 's' : ` #${a.tokenId}`} from ${short(a.collection)} to ${nameFor(a.to, ctx, { full: true })}`
     case 'contract-call': return `Call function ${a.selector} on ${nameFor(a.contract, ctx)}`
     default: return a.type
   }
