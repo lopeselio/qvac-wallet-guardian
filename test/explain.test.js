@@ -53,3 +53,16 @@ test('falls back to plain explanation when the model fails', async () => {
 test('cleanLlmText handles an unterminated think block', () => {
   assert.equal(cleanLlmText('Hi <think>never closed'), 'Hi')
 })
+
+test('loadExplainer checks memory before downloading', async () => {
+  const { loadExplainer } = await import('../src/explain.js')
+  let loaded = 0
+  const sdk = {
+    QWEN3_1_7B_INST_Q4: { name: 'QWEN3_1_7B_INST_Q4' },
+    async assessModelFit () { return { verdict: 'likely-too-large', models: [{ name: 'QWEN3_1_7B_INST_Q4', verdict: 'likely-too-large', reasons: [] }] } },
+    async loadModel () { loaded++; return 'm' }
+  }
+  await assert.rejects(loadExplainer(sdk), /likely can't hold/)
+  assert.equal(loaded, 0)
+  assert.equal(await loadExplainer(sdk, { force: true }), 'm')
+})

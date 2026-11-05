@@ -1,3 +1,5 @@
+import { ensureFits } from './fit.js'
+
 // Two ways to explain a report:
 //   1. explainPlain(): deterministic text, always available, no model.
 //   2. explainWithLlm(): a local QVAC model writes a friendlier explanation
@@ -92,13 +94,16 @@ export async function explainWithLlm ({ sdk, modelId, report, language, onText }
 }
 
 /** Load a small local model suitable for explanations. */
-export async function loadExplainer (sdk, { model = 'QWEN3_1_7B_INST_Q4', onProgress } = {}) {
+export async function loadExplainer (sdk, { model = 'QWEN3_1_7B_INST_Q4', onProgress, onFit, force = false } = {}) {
   const src = sdk[model] ?? model
-  return sdk.loadModel({
+  const load = {
     modelSrc: src,
     ...(typeof src === 'string' ? { modelType: 'llm' } : {}),
-    // Qwen3: "/no_think" in the system prompt would also work; low temp keeps it factual.
-    modelConfig: { ctx_size: 4096, temp: 0.2 },
-    onProgress
-  })
+    // Low temperature keeps the explanation factual.
+    modelConfig: { ctx_size: 4096, temp: 0.2 }
+  }
+  // Check memory before a ~1 GB download; fall back to plain text if it won't fit.
+  const fit = await ensureFits(sdk, [{ ...load, modelType: 'llamacpp-completion' }], { force })
+  onFit?.(fit)
+  return sdk.loadModel({ ...load, onProgress })
 }

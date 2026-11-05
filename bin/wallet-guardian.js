@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  analyzeTransaction, analyzeTypedData, explainPlain, explainWithLlm, loadExplainer, rpcContext
+  analyzeTransaction, analyzeTypedData, explainPlain, explainWithLlm, loadExplainer, rpcContext, describeFit, ModelTooLargeError
 } from '../src/index.js'
 
 const HELP = `wallet-guardian — understand a transaction or signature before you sign it
@@ -23,6 +23,7 @@ Options:
   --model <const>     QVAC model for --explain (default QWEN3_1_7B_INST_Q4)
   --lang <language>   explanation language for --explain (default English)
   --json              print the raw report as JSON
+  --force             load the explanation model even if the memory check says it won't fit
 
 Exit code: 0 = ok, 1 = warning, 2 = danger.
 Everything runs locally. Nothing about your transaction is sent anywhere (except --rpc lookups).
@@ -47,10 +48,21 @@ async function render (report, v) {
       throw new Error('--explain needs @qvac/sdk: npm install @qvac/sdk')
     })
     process.stderr.write('▸ loading local explanation model…\n')
-    const modelId = await loadExplainer(sdk, {
-      model: v.model,
-      onProgress: (p) => process.stderr.write(`\r▸ downloading ${Math.floor(p.percentage ?? 0)}%   `)
-    })
+    let modelId
+    try {
+      modelId = await loadExplainer(sdk, {
+        model: v.model,
+        force: v.force,
+        onFit: (fit) => { for (const l of describeFit(fit)) process.stderr.write(`▸ memory check: ${l}\n`) },
+        onProgress: (p) => process.stderr.write(`\r▸ downloading ${Math.floor(p.percentage ?? 0)}%   `)
+      })
+    } catch (err) {
+      if (!(err instanceof ModelTooLargeError)) throw err
+      // The verdict never depends on the model, so degrade to the plain explanation.
+      process.stderr.write(`⚠ ${err.message}\n▸ using the plain explanation instead\n`)
+      v.explain = false
+      return console.log(explainPlain(report))
+    }
     process.stderr.write('\r\x1b[K')
     explainer = { sdk, modelId }
   }
@@ -79,6 +91,7 @@ async function main (argv) {
       model: { type: 'string' },
       lang: { type: 'string' },
       json: { type: 'boolean' },
+      force: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' }
     }
   })
