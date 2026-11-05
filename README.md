@@ -19,15 +19,16 @@ Why:
      from transaction history.
 ```
 
-With `--explain`, a local Qwen3 model adds a friendly explanation, here in Spanish (real output):
+With `--explain`, a local Qwen3 model adds a friendly explanation, here in Spanish. This is verbatim output, including a stray Chinese word ("地址", "address"), a known quirk of small models (see Limitations):
 
 ```console
 $ wallet-guardian demo address-poisoning --explain --lang Spanish
 ⛔ DO NOT SIGN unless you are completely sure.
 
-La transacción indica que se envía 250 USDT a una dirección que parece ser de Alice pero es diferente.
-Esto es un golpe de tipo "address poisoning"… No debes firmar esta transacción, y debes copiar la
-dirección desde tu lista de direcciones, no del historial de transacciones.
+La transacción indica que se envía 250 USDT a un地址 que parece ser de Alice pero es diferente. Esto es
+un golpe de tipo "address poisoning", donde el scammers usan direcciones similares para confundir. No
+debes firmar esta transacción, y debes copiar el地址 desde tu lista de direcciones, no del historial de
+transacciones.
 ```
 
 ## What it catches
