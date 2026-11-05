@@ -1,7 +1,7 @@
 {
   "name": "qvac-wallet-guardian",
   "version": "0.1.0",
-  "description": "Explain EVM transactions and signature requests in plain language and flag drainers, approvals and address poisoning before you sign — rules first, with a local Tether QVAC LLM for the explanation. Drop-in guard for Tether WDK accounts.",
+  "description": "Explain EVM transactions and signature requests in plain language and flag drainers, approvals and address poisoning before you sign \u2014 rules first, with a local Tether QVAC LLM for the explanation. Drop-in guard for Tether WDK accounts.",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
@@ -13,6 +13,7 @@
   "files": [
     "bin",
     "src",
+    "examples/scenarios.json",
     "README.md",
     "LICENSE"
   ],
@@ -36,6 +37,10 @@
   ],
   "author": "lopeselio",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/lopeselio/qvac-wallet-guardian#readme",
+  "bugs": {
+    "url": "https://github.com/lopeselio/qvac-wallet-guardian/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lopeselio/qvac-wallet-guardian.git"
