@@ -53,12 +53,13 @@ Calldata is decoded with [viem](https://viem.sh), including nested `multicall`s.
 ## Install
 
 ```bash
-git clone https://github.com/lopeselio/qvac-wallet-guardian && cd qvac-wallet-guardian
-npm install
-npm link   # optional: puts `wallet-guardian` on your PATH
+npm install -g qvac-wallet-guardian          # puts `wallet-guardian` on your PATH
+npm install qvac-wallet-guardian   # library
 ```
 
-Node.js 22+. `@qvac/sdk` is an optional peer dependency, only needed for `--explain`. The default explanation model is Qwen3 1.7B (Q4_0, about 1 GB, downloaded once).
+From source: `git clone https://github.com/lopeselio/qvac-wallet-guardian && cd qvac-wallet-guardian && npm install`.
+
+Node.js 22+. `@qvac/sdk` is an optional peer dependency, only needed for `--explain`. Install it next to the package (`npm install qvac-wallet-guardian @qvac/sdk`), or try it without installing: `npx -p qvac-wallet-guardian -p @qvac/sdk wallet-guardian demo --explain`. The default explanation model is Qwen3 1.7B (Q4_0, about 1 GB, downloaded once).
 
 ## CLI
 
