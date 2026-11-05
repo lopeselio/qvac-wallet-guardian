@@ -1,0 +1,58 @@
+{
+  "name": "qvac-wallet-guardian",
+  "version": "0.1.0",
+  "description": "Explain EVM transactions and signature requests in plain language and flag drainers, approvals and address poisoning before you sign — rules first, with a local Tether QVAC LLM for the explanation. Drop-in guard for Tether WDK accounts.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "wallet-guardian": "./bin/wallet-guardian.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "qvac",
+    "tether",
+    "wdk",
+    "wallet",
+    "security",
+    "phishing",
+    "evm",
+    "eip-712",
+    "local-ai",
+    "usdt"
+  ],
+  "author": "lopeselio",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lopeselio/qvac-wallet-guardian.git"
+  },
+  "peerDependencies": {
+    "@qvac/sdk": ">=0.23.0"
+  },
+  "peerDependenciesMeta": {
+    "@qvac/sdk": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "@qvac/sdk": "^0.23.0",
+    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.24"
+  }
+}
