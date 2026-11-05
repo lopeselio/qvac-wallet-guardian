@@ -68,6 +68,8 @@ wallet-guardian sign typed-data.json [--chain 1] [--explain]
 wallet-guardian demo [scenario] [--explain] [--lang Spanish]
 ```
 
+With `--explain`, the model is memory-checked with QVAC's `assessModelFit()` before its ~1 GB download. If it likely won't fit, Wallet Guardian prints the plain explanation instead (`--force` overrides), because the verdict never depends on the model anyway.
+
 The exit code is `0` (ok), `1` (warning) or `2` (danger), so you can use it in scripts and CI for multisig proposals. `--json` prints the full report.
 
 ## Guarding a Tether WDK wallet
