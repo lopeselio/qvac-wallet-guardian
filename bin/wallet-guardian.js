@@ -13,6 +13,7 @@ Usage:
   wallet-guardian tx --to <addr> [--data 0x..] [--value <wei>] [options]
   wallet-guardian sign <typed-data.json> [options]
   wallet-guardian demo [scenario] [options]     run the bundled scam scenarios
+  wallet-guardian ui [--port 4321] [--no-llm]   open the local web UI
 
 Options:
   --chain <id>        chain your wallet is on (default 1)
@@ -24,6 +25,9 @@ Options:
   --lang <language>   explanation language for --explain (default English)
   --json              print the raw report as JSON
   --force             load the explanation model even if the memory check says it won't fit
+  --port <n>          port for \`ui\` (default 4321, always bound to 127.0.0.1)
+  --no-llm            \`ui\` without a model: rules and findings only
+  --no-open           \`ui\` without opening a browser
 
 Exit code: 0 = ok, 1 = warning, 2 = danger.
 Everything runs locally. Nothing about your transaction is sent anywhere (except --rpc lookups).
@@ -75,12 +79,56 @@ async function render (report, v) {
   for (const f of report.findings) console.log(`  ${f.severity === 'danger' ? '⛔' : f.severity === 'warning' ? '⚠️ ' : 'ℹ️ '} ${f.title}`)
 }
 
+const LABELS = {
+  'pay-alice': 'Pay Alice',
+  'address-poisoning': 'Look-alike address',
+  'unlimited-approval': 'Airdrop drainer',
+  'permit2-approval': 'Uniswap Permit2',
+  'nft-approve-all': 'NFT approve-all',
+  'gasless-permit': 'Gasless permit'
+}
+
+async function startUi (v) {
+  const { createUiServer, analyzeInput } = await import('../src/ui-server.js')
+  const here = dirname(fileURLToPath(import.meta.url))
+  const { context: demoCtx, scenarios } = JSON.parse(await readFile(join(here, '..', 'examples', 'scenarios.json'), 'utf8'))
+  const context = await buildContext(v, demoCtx)
+  const list = []
+  for (const s of scenarios) {
+    const report = await analyzeInput(s.tx ? { tx: s.tx } : { typedData: s.typedData }, context)
+    list.push({ ...s, label: LABELS[s.name] ?? s.name, verdict: report.verdict })
+  }
+  const ui = createUiServer({
+    loadSdk: v.llm ? () => import('@qvac/sdk') : undefined,
+    model: v.model,
+    force: v.force,
+    context,
+    scenarios: list,
+    log: (l) => process.stderr.write(`▸ ${l}\n`)
+  })
+  const url = await ui.listen(Number(v.port ?? 4321))
+  console.log(`Wallet Guardian UI: ${url}  (Ctrl+C to stop)`)
+  if (v.open) {
+    const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open'
+    const { spawn } = await import('node:child_process')
+    spawn(opener, [url], { stdio: 'ignore', detached: true }).on('error', () => {}).unref()
+  }
+  if (v.llm) {
+    process.stderr.write('▸ loading local explanation model…\n')
+    ui.startModel()
+  }
+  const stop = async () => { await ui.close(); process.exit(0) }
+  process.once('SIGINT', stop)
+  process.once('SIGTERM', stop)
+}
+
 const exitCode = (verdict) => (verdict === 'danger' ? 2 : verdict === 'warning' ? 1 : 0)
 
 async function main (argv) {
   const { values: v, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
+    allowNegative: true,
     options: {
       to: { type: 'string' },
       data: { type: 'string' },
@@ -94,6 +142,9 @@ async function main (argv) {
       lang: { type: 'string' },
       json: { type: 'boolean' },
       force: { type: 'boolean' },
+      port: { type: 'string' },
+      llm: { type: 'boolean', default: true },
+      open: { type: 'boolean', default: true },
       help: { type: 'boolean', short: 'h' }
     }
   })
@@ -128,6 +179,8 @@ async function main (argv) {
       await render(report, v)
       bump(report.verdict)
     }
+  } else if (cmd === 'ui') {
+    return startUi(v)
   } else {
     throw new Error(`Unknown command "${cmd}". Run wallet-guardian --help.`)
   }
