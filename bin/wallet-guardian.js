@@ -68,6 +68,8 @@ async function render (report, v) {
   }
   const text = await explainWithLlm({ ...explainer, report, language: v.lang })
   console.log(text)
+  // The plain fallback already lists every action and finding.
+  if (text === explainPlain(report)) return
   console.log('\nDetails:')
   for (const s of report.summary) console.log(`  • ${s}`)
   for (const f of report.findings) console.log(`  ${f.severity === 'danger' ? '⛔' : f.severity === 'warning' ? '⚠️ ' : 'ℹ️ '} ${f.title}`)
