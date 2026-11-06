@@ -89,12 +89,14 @@ export function contradictsVerdict (verdict, text) {
 }
 
 /**
- * @param {{ sdk: any, modelId: string, report: object, language?: string, onText?: (t: string) => void }} p
+ * @param {{ sdk: any, modelId: string, report: object, language?: string, onText?: (t: string) => void, onRetry?: (attempt: number) => void, attempts?: number }} p
+ * onRetry fires before each new attempt, so a UI that streamed onText can clear the rejected draft.
  * @returns {Promise<string>} verdict line + model explanation (falls back to plain text on error)
  */
-export async function explainWithLlm ({ sdk, modelId, report, language, onText, attempts = 2 }) {
+export async function explainWithLlm ({ sdk, modelId, report, language, onText, onRetry, attempts = 2 }) {
   // Sampling is random, so a rejected answer is retried once before falling back.
   for (let i = 0; i < attempts; i++) {
+    if (i > 0) onRetry?.(i)
     try {
       const run = sdk.completion({ modelId, history: buildPrompt(report, { language }), stream: true })
       let raw = ''
