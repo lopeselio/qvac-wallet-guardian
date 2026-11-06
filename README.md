@@ -33,6 +33,10 @@ transacciones.
 
 ## Web UI
 
+**Try it in your browser: https://lopeselio.github.io/qvac-wallet-guardian/**
+
+The hosted page runs the real rule engine in your browser (nothing is sent anywhere). The local QVAC explanation needs Node and your own hardware, so for that, run the UI locally:
+
 ```bash
 wallet-guardian ui      # opens http://127.0.0.1:4321/
 ```
@@ -144,7 +148,8 @@ Token names, NFT metadata and EIP-712 strings are attacker-controlled. A request
 ## Development
 
 ```bash
-npm test   # decoder, rules, typed data, explainer guards, and guard() against a real WDK WalletAccountEvm
+npm test   # decoder, rules, typed data, explainer guards, UI server, and guard() against a real WDK WalletAccountEvm
+npm run build:site   # the hosted demo, into site/dist (deployed to GitHub Pages by .github/workflows/pages.yml)
 ```
 
 ## License
