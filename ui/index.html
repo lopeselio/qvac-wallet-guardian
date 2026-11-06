@@ -100,8 +100,10 @@
   .tag { display: inline-flex; align-items: center; gap: 6px; }
   footer { margin-top: 22px; color: var(--muted); font-size: 13px; display: flex; gap: 6px 18px; flex-wrap: wrap; }
   footer b { color: var(--ink); font-weight: 600; }
+  footer a { color: var(--accent); }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; transition: .2s; pointer-events: none; max-width: calc(100% - 32px); }
   .toast.show { opacity: 1; transform: translateX(-50%); }
+  code.cmd { display: block; margin-top: 10px; font-family: var(--mono); font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; white-space: normal; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -139,6 +141,7 @@
   <footer>
     <span><b>Rules decide the verdict.</b> The model only explains it, and an explanation that contradicts the verdict is discarded.</span>
     <span><b>Runs on this device.</b> No transaction data leaves your machine.</span>
+    <span><a href="https://github.com/lopeselio/qvac-wallet-guardian" rel="noopener">Source on GitHub</a></span>
   </footer>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -177,7 +180,16 @@ function toast (msg) {
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600)
 }
 
+// Hosted demo (GitHub Pages): the rule engine is bundled into the page and
+// there is no local server, so there is no explanation model either.
+let hosted = null
+
 async function api (path, body) {
+  if (hosted) {
+    if (path === '/api/scenarios') return hosted.scenarios
+    if (path === '/api/state') return { llm: { status: 'browser' }, addressBook: hosted.addressBook }
+    if (path === '/api/analyze') return hosted.analyze(body.input)
+  }
   const res = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {})
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
@@ -199,6 +211,8 @@ function renderModel () {
   } else if (llm.status === 'loading' || llm.status === 'idle') {
     dot.classList.add('loading')
     text = llm.progress > 0 && llm.progress < 100 ? `Downloading ${modelName(llm.model)} · ${llm.progress}%` : `Loading ${modelName(llm.model)}…`
+  } else if (llm.status === 'browser') {
+    dot.classList.add('ready'); text = 'Running in your browser · rules only'
   } else if (llm.status === 'off') {
     dot.classList.add('off'); text = 'Rules only (no model)'
   } else {
@@ -379,6 +393,15 @@ async function explain () {
   const box = $('explain'); const src = $('explain-src'); const time = $('explain-time')
   if (!box) return
   const llm = state.llm
+  if (llm?.status === 'browser') {
+    box.className = 'explain draft'
+    box.replaceChildren(
+      'In the local app, a QVAC model on your own device explains this in plain words, in your language. It needs Node and your hardware, so it can\'t run on this hosted page. Try it locally:',
+      h('code', { class: 'cmd' }, 'npx -p qvac-wallet-guardian -p @qvac/sdk wallet-guardian ui'))
+    src.textContent = 'The verdict and findings above are the real rule engine, running in this page.'
+    time.textContent = ''
+    return
+  }
   if (!llm || llm.status === 'loading' || llm.status === 'idle') {
     box.className = 'explain draft'; box.replaceChildren('Waiting for the local model to load…'); src.textContent = ''; return
   }
@@ -433,6 +456,8 @@ $('lang').addEventListener('change', () => explain())
 
 /* ---------- boot ---------- */
 ;(async () => {
+  if (window.WalletGuardianStatic) hosted = await window.WalletGuardianStatic
+  if (hosted) $('lang').closest('label').style.display = 'none'
   try {
     state.scenarios = await api('/api/scenarios')
   } catch (e) { $('guard').append(h('p', { class: 'err' }, `Couldn't reach the local server: ${e.message}`)); return }
