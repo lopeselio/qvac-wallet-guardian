@@ -1,6 +1,6 @@
 {
   "name": "qvac-wallet-guardian",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Explain EVM transactions and signature requests in plain language and flag drainers, approvals and address poisoning before you sign — rules first, with a local Tether QVAC LLM for the explanation. Drop-in guard for Tether WDK accounts.",
   "type": "module",
   "main": "./src/index.js",
