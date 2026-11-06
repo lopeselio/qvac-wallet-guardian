@@ -11,6 +11,7 @@
   "scenarios": [
     {
       "name": "pay-alice",
+      "label": "Pay Alice",
       "note": "Normal USDT payment to a saved contact",
       "tx": {
         "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -19,6 +20,7 @@
     },
     {
       "name": "address-poisoning",
+      "label": "Look-alike address",
       "note": "Same payment, but to a look-alike address copied from history",
       "tx": {
         "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -27,6 +29,7 @@
     },
     {
       "name": "unlimited-approval",
+      "label": "Airdrop drainer",
       "note": "A \"claim your airdrop\" site asks for unlimited USDT approval",
       "tx": {
         "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -35,6 +38,7 @@
     },
     {
       "name": "permit2-approval",
+      "label": "Uniswap Permit2",
       "note": "Uniswap asks to approve Permit2",
       "tx": {
         "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -43,6 +47,7 @@
     },
     {
       "name": "nft-approve-all",
+      "label": "NFT approve-all",
       "note": "A fake mint site asks for access to your whole collection",
       "tx": {
         "to": "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d",
@@ -51,6 +56,7 @@
     },
     {
       "name": "gasless-permit",
+      "label": "Gasless permit",
       "note": "A gasless signature granting unlimited USDC",
       "typedData": {
         "domain": {

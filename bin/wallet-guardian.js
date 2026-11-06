@@ -79,24 +79,16 @@ async function render (report, v) {
   for (const f of report.findings) console.log(`  ${f.severity === 'danger' ? '⛔' : f.severity === 'warning' ? '⚠️ ' : 'ℹ️ '} ${f.title}`)
 }
 
-const LABELS = {
-  'pay-alice': 'Pay Alice',
-  'address-poisoning': 'Look-alike address',
-  'unlimited-approval': 'Airdrop drainer',
-  'permit2-approval': 'Uniswap Permit2',
-  'nft-approve-all': 'NFT approve-all',
-  'gasless-permit': 'Gasless permit'
-}
-
 async function startUi (v) {
-  const { createUiServer, analyzeInput } = await import('../src/ui-server.js')
+  const { createUiServer } = await import('../src/ui-server.js')
+  const { analyzeInput } = await import('../src/input.js')
   const here = dirname(fileURLToPath(import.meta.url))
   const { context: demoCtx, scenarios } = JSON.parse(await readFile(join(here, '..', 'examples', 'scenarios.json'), 'utf8'))
   const context = await buildContext(v, demoCtx)
   const list = []
   for (const s of scenarios) {
     const report = await analyzeInput(s.tx ? { tx: s.tx } : { typedData: s.typedData }, context)
-    list.push({ ...s, label: LABELS[s.name] ?? s.name, verdict: report.verdict })
+    list.push({ ...s, label: s.label ?? s.name, verdict: report.verdict })
   }
   const ui = createUiServer({
     loadSdk: v.llm ? () => import('@qvac/sdk') : undefined,
