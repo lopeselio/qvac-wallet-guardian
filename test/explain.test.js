@@ -66,3 +66,23 @@ test('loadExplainer checks memory before downloading', async () => {
   assert.equal(loaded, 0)
   assert.equal(await loadExplainer(sdk, { force: true }), 'm')
 })
+
+test('conditional warnings are not mistaken for reassurance', () => {
+  // Real Qwen3-1.7B outputs that the first version of the guard wrongly rejected.
+  assert.equal(contradictsVerdict('danger', 'The verdict says this is a danger, so you should not sign unless you\'re certain this is legitimate.'), false)
+  assert.equal(contradictsVerdict('danger', 'You should not sign this unless you\'re certain the spender is trustworthy.'), false)
+})
+
+test('downplaying a flagged request counts as a contradiction', () => {
+  // Real output for the Permit2 warning scenario.
+  assert.equal(contradictsVerdict('warning', 'This is a cautionary note, not a serious threat. Only proceed if you are certain.'), true)
+  assert.equal(contradictsVerdict('danger', 'It is a low risk request.'), true)
+})
+
+test('one "not safe" does not excuse a "safe" in another sentence', () => {
+  assert.equal(contradictsVerdict('danger', 'Some approvals are not safe. This one is safe to sign.'), true)
+})
+
+test('markdown emphasis is stripped', () => {
+  assert.equal(cleanLlmText('You should **not sign** this.'), 'You should not sign this.')
+})

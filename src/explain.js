@@ -56,22 +56,36 @@ export function buildPrompt (report, { language = 'English' } = {}) {
   ]
 }
 
-/** Strip <think>…</think> (Qwen3) and trim. */
+/** Strip <think>…</think> (Qwen3), markdown emphasis, and trim. */
 export function cleanLlmText (text) {
-  return text.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*$/, '').trim()
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/g, '')
+    .replace(/<think>[\s\S]*$/, '')
+    .replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, '$1$2')
+    .trim()
 }
 
-const REASSURING = /\b(safe|no risk|risk-free|harmless|legit(?:imate)?|fine to sign|go ahead|nothing to worry|trustworthy)\b/i
-const NEGATED = /\b(?:not|never|isn't|is not|un)\s*(?:safe|legit|harmless|trustworthy)|\bunsafe\b|\bdon't go ahead\b/i
+const REASSURING = /\b(safe|no risk|risk-free|harmless|legit(?:imate)?|fine to sign|go ahead|nothing to worry|no need to worry|trustworthy)\b/i
+const NEGATED = /\b(?:not|never|isn't|is not|un)\s*(?:be\s+)?(?:safe|legit|harmless|trustworthy)|\bunsafe\b|\bdon't go ahead\b/i
+// Downplaying a flagged request is a contradiction even without the word "safe".
+const DOWNPLAYING = /\bnot (?:a |an )?(?:serious|real|big|major)\b|\bnothing serious\b|\b(?:low|minimal|minor) risk\b|\bjust a (?:cautionary|precaution)/i
 
 /**
  * True when a model explanation reassures the user about a request our
  * rules flagged. In that case we throw the text away rather than show
  * a mixed message.
+ *
+ * Checked sentence by sentence, so one "not safe" can't excuse a "this is
+ * safe" elsewhere. Conditional clauses ("unless you're sure it's
+ * legitimate") are warnings, not reassurance, and are ignored.
  */
 export function contradictsVerdict (verdict, text) {
   if (verdict === 'ok') return false
-  return REASSURING.test(text) && !NEGATED.test(text)
+  return text.split(/(?<=[.!?])\s+/).some((sentence) => {
+    const s = sentence.replace(/\b(?:unless|if|only if|until)\b[^.!?]*/gi, '')
+    if (DOWNPLAYING.test(s)) return true
+    return REASSURING.test(s) && !NEGATED.test(s)
+  })
 }
 
 /**
