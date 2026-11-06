@@ -31,6 +31,18 @@ debes firmar esta transacción, y debes copiar el地址 desde tu lista de direcc
 transacciones.
 ```
 
+## Web UI
+
+```bash
+wallet-guardian ui      # opens http://127.0.0.1:4321/
+```
+
+![Wallet Guardian web UI flagging an address-poisoning payment](docs/ui.png)
+
+A local page that puts what a wallet normally shows (raw calldata) next to what Guardian sees: the verdict, the decoded actions, the reasons, a character-by-character diff for look-alike addresses, and an explanation streamed from the local QVAC model in the language you pick. Use the bundled scenarios, or paste any transaction (`{ "tx": { to, data, value } }`) or EIP-712 request (`{ "typedData": … }`).
+
+The page has no external scripts, fonts or requests, so it works offline. The server listens on `127.0.0.1` only, rejects foreign `Host` headers and non-JSON posts, and re-analyzes every request itself instead of trusting the page. `--no-llm` starts it without a model, `--port` and `--no-open` do what they say.
+
 ## What it catches
 
 | Check | Verdict |
@@ -67,6 +79,7 @@ Node.js 22+. `@qvac/sdk` is an optional peer dependency, only needed for `--expl
 wallet-guardian tx --to <addr> [--data 0x..] [--value <wei>] [--chain 1] [--book book.json] [--rpc url] [--explain]
 wallet-guardian sign typed-data.json [--chain 1] [--explain]
 wallet-guardian demo [scenario] [--explain] [--lang Spanish]
+wallet-guardian ui [--port 4321] [--no-llm] [--no-open]
 ```
 
 With `--explain`, the model is memory-checked with QVAC's `assessModelFit()` before its ~1 GB download. If it likely won't fit, Wallet Guardian prints the plain explanation instead (`--force` overrides), because the verdict never depends on the model anyway.
@@ -118,13 +131,14 @@ Token names, NFT metadata and EIP-712 strings are attacker-controlled. A request
 1. The **verdict** comes only from deterministic rules over decoded data.
 2. The LLM sees **our** structured summary (clipped, control characters stripped, framed as data), never raw request strings.
 3. The verdict line is **prepended by code**, outside the model's control.
-4. If the model's text reassures the user about a flagged request ("safe", "go ahead"…), it is **discarded** and the deterministic explanation is shown instead.
+4. If the model's text reassures the user about a flagged request ("safe", "go ahead", "not a serious threat"…), it is **discarded**. Each sentence is checked on its own, and conditional warnings ("don't sign unless you're sure it's legitimate") don't count as reassurance. A rejected answer is retried once, then the deterministic explanation is shown instead.
 
 ## Limitations
 
 - This is static analysis. It doesn't simulate execution, so it can't see what an unknown contract call does internally. Pair it with a simulator for complex DeFi transactions.
 - The registry of known contracts is small on purpose, and being listed only softens some warnings. Unknown doesn't mean malicious.
 - Address-poisoning detection needs an address book or a list of recent recipients.
+- The reassurance check (point 4 above) only knows English phrases. In other languages the code-written verdict and findings are the safeguard.
 - Small local models can make language mistakes. Qwen3 1.7B occasionally mixes in a word from another language when explaining in non-English languages. The verdict and details are never affected.
 
 ## Development
