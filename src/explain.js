@@ -92,20 +92,22 @@ export function contradictsVerdict (verdict, text) {
  * @param {{ sdk: any, modelId: string, report: object, language?: string, onText?: (t: string) => void }} p
  * @returns {Promise<string>} verdict line + model explanation (falls back to plain text on error)
  */
-export async function explainWithLlm ({ sdk, modelId, report, language, onText }) {
-  try {
-    const run = sdk.completion({ modelId, history: buildPrompt(report, { language }), stream: true })
-    let raw = ''
-    for await (const ev of run.events) {
-      if (ev.type === 'contentDelta') { raw += ev.text; onText?.(ev.text) }
-    }
-    const text = cleanLlmText(raw)
-    if (!text) throw new Error('empty explanation')
-    if (contradictsVerdict(report.verdict, text)) throw new Error('explanation contradicts verdict')
-    return `${verdictLine(report.verdict)}\n\n${text}`
-  } catch {
-    return explainPlain(report)
+export async function explainWithLlm ({ sdk, modelId, report, language, onText, attempts = 2 }) {
+  // Sampling is random, so a rejected answer is retried once before falling back.
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const run = sdk.completion({ modelId, history: buildPrompt(report, { language }), stream: true })
+      let raw = ''
+      for await (const ev of run.events) {
+        if (ev.type === 'contentDelta') { raw += ev.text; onText?.(ev.text) }
+      }
+      const text = cleanLlmText(raw)
+      if (!text) throw new Error('empty explanation')
+      if (contradictsVerdict(report.verdict, text)) throw new Error('explanation contradicts verdict')
+      return `${verdictLine(report.verdict)}\n\n${text}`
+    } catch {}
   }
+  return explainPlain(report)
 }
 
 /** Load a small local model suitable for explanations. */

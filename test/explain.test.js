@@ -86,3 +86,10 @@ test('one "not safe" does not excuse a "safe" in another sentence', () => {
 test('markdown emphasis is stripped', () => {
   assert.equal(cleanLlmText('You should **not sign** this.'), 'You should not sign this.')
 })
+
+test('a rejected answer is retried before falling back', async () => {
+  const answers = ['Looks totally safe, go ahead!', 'A stranger could take all your USDT. Do not sign it.']
+  const sdk = { completion: () => llm(answers.shift()).completion() }
+  const out = await explainWithLlm({ sdk, modelId: 'm', report })
+  assert.ok(out.endsWith('Do not sign it.'))
+})
