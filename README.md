@@ -149,7 +149,7 @@ Token names, NFT metadata and EIP-712 strings are attacker-controlled. A request
 
 ```bash
 npm test   # decoder, rules, typed data, explainer guards, UI server, and guard() against a real WDK WalletAccountEvm
-npm run build:site   # the hosted demo, into site/dist (deployed to GitHub Pages by .github/workflows/pages.yml)
+npm run build:site   # the hosted demo, into site/dist (.github/workflows/pages.yml publishes it to the gh-pages branch)
 ```
 
 ## License
