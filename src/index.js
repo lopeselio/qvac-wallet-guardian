@@ -6,5 +6,6 @@ export {
 export { analyzeTypedData, typedDataActions } from './typed-data.js'
 export { explainPlain, explainWithLlm, buildPrompt, loadExplainer, verdictLine, contradictsVerdict } from './explain.js'
 export { guard, GuardianBlockedError, inferPrimaryType, rpcContext } from './guard.js'
+export { analyzeInput } from './input.js'
 export { TOKENS, KNOWN_SPENDERS, CHAIN_NAMES } from './registry.js'
 export { checkFit, describeFit, ensureFits, ModelTooLargeError } from './fit.js'
