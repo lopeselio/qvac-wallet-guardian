@@ -19,7 +19,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build:site": "node scripts/build-site.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -59,6 +60,7 @@
   },
   "devDependencies": {
     "@qvac/sdk": "^0.23.0",
-    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.24"
+    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.24",
+    "esbuild": "^0.25.12"
   }
 }
