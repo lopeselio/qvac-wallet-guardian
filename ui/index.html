@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wallet Guardian</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z' fill='%2314b8a6'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f4f5f2; --panel: #ffffff; --panel-2: #f7f8f5; --ink: #15191a; --muted: #5d6766; --line: #e1e4df;
+    --accent: #0d9488; --accent-ink: #ffffff; --accent-soft: #ccfbf1;
+    --ok: #15803d; --ok-soft: #dcfce7; --warn: #b45309; --warn-soft: #fef3c7; --bad: #b91c1c; --bad-soft: #fee2e2;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --shadow: 0 1px 2px rgba(16,24,24,.06), 0 8px 24px rgba(16,24,24,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1112; --panel: #151b1c; --panel-2: #1b2223; --ink: #e8eeec; --muted: #94a3a0; --line: #263032;
+      --accent: #2dd4bf; --accent-ink: #062521; --accent-soft: #123c38;
+      --ok: #4ade80; --ok-soft: #12301f; --warn: #fbbf24; --warn-soft: #3a2c0b; --bad: #f87171; --bad-soft: #3b1515;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  button, select, textarea { font: inherit; color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+  .brand svg { width: 30px; height: 30px; }
+  .brand h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
+  .brand p { margin: 0; color: var(--muted); font-size: 13px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ready { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .dot.loading { background: var(--warn); animation: pulse 1.2s infinite; }
+  .dot.off { background: var(--muted); }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .scenarios { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; scrollbar-width: thin; }
+  .chip { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 7px 14px; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 7px; }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .chip .sev { width: 7px; height: 7px; border-radius: 50%; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+  .card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--line); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .card-b { padding: 18px; }
+
+  /* Wallet mock */
+  .wallet-title { font-size: 20px; font-weight: 650; margin: 0 0 4px; letter-spacing: -.01em; }
+  .wallet-note { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+  .kv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px 12px; font-size: 14px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; min-width: 0; }
+  .mono { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .hex { font-family: var(--mono); font-size: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 120px; overflow: auto; overflow-wrap: anywhere; color: var(--muted); }
+  .wallet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 12px; padding: 11px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn.danger { background: var(--bad); color: #fff; border-color: transparent; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  textarea { width: 100%; min-height: 260px; resize: vertical; font-family: var(--mono); font-size: 12.5px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  textarea:focus, select:focus, .btn:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .err { color: var(--bad); font-size: 14px; margin: 10px 0 0; }
+
+  /* Verdict */
+  .verdict { display: flex; gap: 14px; align-items: center; padding: 18px; border-radius: 14px; margin-bottom: 18px; }
+  .verdict .icon { font-size: 30px; line-height: 1; }
+  .verdict h2 { margin: 0; font-size: 21px; letter-spacing: -.01em; }
+  .verdict p { margin: 2px 0 0; font-size: 14px; opacity: .85; }
+  .verdict.ok { background: var(--ok-soft); color: var(--ok); }
+  .verdict.warning { background: var(--warn-soft); color: var(--warn); }
+  .verdict.danger { background: var(--bad-soft); color: var(--bad); }
+  .verdict.pending { background: var(--panel-2); color: var(--muted); }
+  .section { margin-top: 18px; }
+  .section h3 { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  ul.actions { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  ul.actions li { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-weight: 550; }
+  .finding { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .finding:first-of-type { border-top: 0; padding-top: 2px; }
+  .finding b { display: block; }
+  .finding span { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+  .diff { margin-top: 10px; display: grid; gap: 4px; font-family: var(--mono); font-size: 13px; }
+  .diff div { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px; }
+  .diff .who { color: var(--muted); font-family: inherit; }
+  .diff .same { color: var(--muted); }
+  .diff mark { background: var(--bad-soft); color: var(--bad); border-radius: 3px; }
+  .explain { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-height: 64px; font-size: 15.5px; line-height: 1.6; white-space: pre-wrap; }
+  .explain.draft { color: var(--muted); }
+  .caret { display: inline-block; width: 7px; height: 1em; background: var(--accent); vertical-align: -2px; margin-left: 2px; animation: pulse 1s infinite; }
+  .explain-meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: var(--muted); }
+  select { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 13px; text-transform: none; letter-spacing: 0; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; }
+  footer { margin-top: 22px; color: var(--muted); font-size: 13px; display: flex; gap: 6px 18px; flex-wrap: wrap; }
+  footer b { color: var(--ink); font-weight: 600; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; transition: .2s; pointer-events: none; max-width: calc(100% - 32px); }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z" fill="var(--accent)"/><path d="m8.5 12 2.5 2.5 4.5-5" stroke="var(--accent-ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><h1>Wallet Guardian</h1><p>Read it in plain words before you sign.</p></div>
+    </div>
+    <span class="pill" id="model-pill"><span class="dot" id="model-dot"></span><span id="model-text">Connecting…</span></span>
+  </header>
+
+  <nav class="scenarios" id="scenarios" aria-label="Requests to inspect"></nav>
+
+  <main class="grid">
+    <section class="card" aria-labelledby="wallet-h">
+      <div class="card-h"><span id="wallet-h">What your wallet shows</span><span id="network">Ethereum</span></div>
+      <div class="card-b" id="wallet"></div>
+    </section>
+
+    <section class="card" aria-labelledby="guard-h" aria-live="polite">
+      <div class="card-h"><span id="guard-h">What Guardian sees</span>
+        <label class="tag"><span class="sr">Explanation language</span>
+          <select id="lang">
+            <option>English</option><option>Spanish</option><option>Portuguese</option><option>French</option><option>German</option>
+            <option>Italian</option><option>Turkish</option><option>Hindi</option><option>Chinese</option><option>Japanese</option>
+          </select>
+        </label>
+      </div>
+      <div class="card-b" id="guard"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span><b>Rules decide the verdict.</b> The model only explains it, and an explanation that contradicts the verdict is discarded.</span>
+    <span><b>Runs on this device.</b> No transaction data leaves your machine.</span>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict'
+const $ = (id) => document.getElementById(id)
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag)
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v)
+    else if (v != null && v !== false) el.setAttribute(k, v === true ? '' : v)
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : String(kid))
+  return el
+}
+
+const VERDICT = {
+  ok: { icon: '✅', title: 'No red flags found', sub: 'Guardian found nothing unusual in this request.' },
+  warning: { icon: '⚠️', title: 'Be careful', sub: 'Review the points below before signing.' },
+  danger: { icon: '⛔', title: 'Do not sign', sub: 'Unless you are completely sure. This matches a known scam pattern.' }
+}
+const SEV_ICON = { danger: '⛔', warning: '⚠️', info: 'ℹ️' }
+const SEV_COLOR = { danger: 'var(--bad)', warning: 'var(--warn)', ok: 'var(--ok)' }
+
+const CUSTOM_EXAMPLE = JSON.stringify({
+  tx: { to: '0xdac17f958d2ee523a2206206994597c13d831ec7', data: '0x095ea7b3000000000000000000000000ab5801a7d398351b8be11c439e05c5b3259aec9b00000000000000000000000000000000000000000000000000000000000f4240', value: '0' }
+}, null, 2)
+
+let state = { llm: null, addressBook: [], scenarios: [], current: null, input: null, report: null, lastStatus: null }
+let explainCtl = null
+
+function toast (msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show')
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600)
+}
+
+async function api (path, body) {
+  const res = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {})
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
+}
+
+/* ---------- model status ---------- */
+function modelName (m) {
+  return (m || '').replace(/^QWEN3_(\d+(?:_\d+)?[BM])_INST_Q4$/, (_, s) => `Qwen3-${s.replace('_', '.')}`).replace(/_/g, ' ')
+}
+function renderModel () {
+  const llm = state.llm; if (!llm) return
+  const dot = $('model-dot'); dot.className = 'dot'
+  let text
+  if (llm.status === 'ready') {
+    dot.classList.add('ready')
+    const gpu = (llm.fit || []).some((l) => /\(gpu\)/.test(l))
+    text = `${modelName(llm.model)} · on this device${gpu ? ' · GPU' : ''}`
+  } else if (llm.status === 'loading' || llm.status === 'idle') {
+    dot.classList.add('loading')
+    text = llm.progress > 0 && llm.progress < 100 ? `Downloading ${modelName(llm.model)} · ${llm.progress}%` : `Loading ${modelName(llm.model)}…`
+  } else if (llm.status === 'off') {
+    dot.classList.add('off'); text = 'Rules only (no model)'
+  } else {
+    dot.classList.add('off'); text = 'Model unavailable · rules only'
+  }
+  $('model-text').textContent = text
+  $('model-pill').title = [llm.error, ...(llm.fit || []).map((l) => `memory check: ${l}`)].filter(Boolean).join('\n')
+}
+async function pollModel () {
+  try {
+    const s = await api('/api/state')
+    state.llm = s.llm; state.addressBook = s.addressBook
+    renderModel()
+    // When the model becomes ready, explain what's on screen.
+    if (s.llm.status === 'ready' && state.lastStatus !== 'ready' && state.report) explain()
+    state.lastStatus = s.llm.status
+    if (s.llm.status === 'loading' || s.llm.status === 'idle') setTimeout(pollModel, 700)
+  } catch { setTimeout(pollModel, 2000) }
+}
+
+/* ---------- scenarios ---------- */
+function renderScenarios () {
+  const nav = $('scenarios'); nav.replaceChildren()
+  for (const s of state.scenarios) {
+    nav.append(h('button', { class: 'chip', 'aria-pressed': String(state.current === s.name), onclick: () => select(s.name) },
+      h('span', { class: 'sev', style: `background:${SEV_COLOR[s.verdict] || 'var(--muted)'}` }), s.label))
+  }
+  nav.append(h('button', { class: 'chip', 'aria-pressed': String(state.current === 'custom'), onclick: () => select('custom') }, '✎ Paste your own'))
+}
+
+function select (name) {
+  state.current = name
+  renderScenarios()
+  if (name === 'custom') {
+    state.input = null; state.report = null
+    renderCustom(); renderGuard()
+    return
+  }
+  const s = state.scenarios.find((x) => x.name === name)
+  state.input = s.tx ? { tx: s.tx } : { typedData: s.typedData }
+  renderWallet(s)
+  analyze()
+}
+
+/* ---------- wallet side ---------- */
+const short = (a) => a && a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a
+function ethValue (wei) {
+  try { const v = BigInt(wei || 0); return `${Number(v) / 1e18} ETH` } catch { return String(wei) }
+}
+function renderWallet (s) {
+  const w = $('wallet'); w.replaceChildren()
+  const input = state.input
+  if (input.tx) {
+    w.append(
+      h('p', { class: 'wallet-title' }, 'Confirm transaction'),
+      h('p', { class: 'wallet-note' }, s ? s.note : 'Pasted request'),
+      h('dl', { class: 'kv' },
+        h('dt', {}, 'To'), h('dd', { class: 'mono' }, input.tx.to),
+        h('dt', {}, 'Amount'), h('dd', {}, ethValue(input.tx.value)),
+        h('dt', {}, 'Data'), h('dd', {}, input.tx.data ? h('div', { class: 'hex' }, input.tx.data) : '—'))
+    )
+  } else {
+    const td = input.typedData
+    const rows = []
+    for (const [k, v] of Object.entries(td.message || {})) {
+      const val = typeof v === 'object' ? JSON.stringify(v) : String(v)
+      rows.push(h('dt', {}, k), h('dd', { class: 'mono' }, val.length > 140 ? val.slice(0, 140) + '…' : val))
+    }
+    w.append(
+      h('p', { class: 'wallet-title' }, 'Signature request'),
+      h('p', { class: 'wallet-note' }, s ? s.note : 'Pasted request'),
+      h('dl', { class: 'kv' },
+        h('dt', {}, 'App'), h('dd', {}, td.domain?.name || 'Unknown'),
+        h('dt', {}, 'Contract'), h('dd', { class: 'mono' }, td.domain?.verifyingContract || '—'),
+        h('dt', {}, 'Type'), h('dd', { class: 'mono' }, td.primaryType || '—'),
+        ...rows)
+    )
+  }
+  const danger = state.report?.verdict === 'danger'
+  w.append(h('div', { class: 'wallet-actions' },
+    h('button', { class: 'btn', onclick: () => toast('Rejected. Nothing was signed.') }, 'Reject'),
+    h('button', { class: `btn ${danger ? 'danger' : 'primary'}`, id: 'sign-btn', onclick: onSign }, danger ? 'Sign anyway' : (input.tx ? 'Confirm' : 'Sign'))))
+}
+function onSign () {
+  const v = state.report?.verdict
+  toast(v === 'danger'
+    ? 'In a wallet using the WDK guard, this would be blocked. (Demo: nothing is signed.)'
+    : 'Demo only: nothing is signed or sent.')
+}
+
+function renderCustom (error) {
+  const w = $('wallet'); w.replaceChildren()
+  const ta = h('textarea', { id: 'custom', spellcheck: 'false', 'aria-label': 'Request JSON' })
+  ta.value = state.customText ?? CUSTOM_EXAMPLE
+  ta.addEventListener('input', () => { state.customText = ta.value })
+  const book = state.addressBook.map((e) => `${e.name} (${short(e.address)})`).join(', ')
+  w.append(...[
+    h('p', { class: 'wallet-title' }, 'Paste a request'),
+    h('p', { class: 'wallet-note' }, 'A transaction as { "tx": { to, data, value } }, or an EIP-712 signature as { "typedData": { domain, types, primaryType, message } }.'),
+    ta,
+    error ? h('p', { class: 'err' }, error) : null,
+    h('div', { class: 'wallet-actions' },
+      h('button', { class: 'btn', onclick: () => { state.customText = CUSTOM_EXAMPLE; renderCustom() } }, 'Reset example'),
+      h('button', { class: 'btn primary', onclick: runCustom }, 'Check it')),
+    h('p', { class: 'hint' }, `Address book: ${book || 'empty'}. Analysis is offline, so spenders are judged by name and pattern, not on-chain lookups.`)
+  ].filter(Boolean))
+}
+async function runCustom () {
+  let input
+  try { input = JSON.parse(state.customText ?? CUSTOM_EXAMPLE) } catch (e) { return renderCustom(`That isn't valid JSON: ${e.message}`) }
+  if (!input.tx && !input.typedData) {
+    // Accept a bare tx or bare typed data too.
+    input = input.to ? { tx: input } : input.types ? { typedData: input } : input
+  }
+  state.input = input
+  try { await analyze(true) } catch (e) { renderCustom(e.message) }
+}
+
+/* ---------- guardian side ---------- */
+async function analyze (throwErrors = false) {
+  const reqInput = state.input
+  state.report = null
+  renderGuard()
+  try {
+    const report = await api('/api/analyze', { input: reqInput })
+    if (state.input !== reqInput) return
+    state.report = report
+  } catch (e) {
+    if (throwErrors) throw e
+    state.report = null; renderGuard(e.message); return
+  }
+  if (state.current !== 'custom') renderWallet(state.scenarios.find((x) => x.name === state.current))
+  else renderCustom()
+  renderGuard()
+  explain()
+}
+
+function addressDiff (detail) {
+  const [a, b] = (detail.match(/0x[0-9a-fA-F]{40}/g) || [])
+  if (!a || !b) return null
+  const row = (who, addr, other) => h('div', {}, h('span', { class: 'who' }, who),
+    h('span', {}, ...[...addr].map((c, i) => c.toLowerCase() === other[i]?.toLowerCase() ? h('span', { class: 'same' }, c) : h('mark', {}, c))))
+  const name = (detail.match(/with (\S+) 0x/) || [])[1] || 'Contact'
+  return h('div', { class: 'diff', 'aria-label': 'Address comparison' }, row('Request', a, b), row(name, b, a))
+}
+
+function renderGuard (error) {
+  const g = $('guard'); g.replaceChildren()
+  const r = state.report
+  if (error) { g.append(h('p', { class: 'err' }, error)); return }
+  if (!r) {
+    g.append(h('div', { class: 'verdict pending' }, h('div', { class: 'icon' }, '…'),
+      h('div', {}, h('h2', {}, state.current === 'custom' ? 'Waiting for a request' : 'Analyzing…'), h('p', {}, 'Decoding locally.'))))
+    return
+  }
+  const v = VERDICT[r.verdict] || VERDICT.warning
+  g.append(h('div', { class: `verdict ${r.verdict}` }, h('div', { class: 'icon', 'aria-hidden': 'true' }, v.icon),
+    h('div', {}, h('h2', {}, v.title), h('p', {}, v.sub))))
+
+  if (r.summary?.length) {
+    g.append(h('div', { class: 'section' }, h('h3', {}, 'What this actually does'),
+      h('ul', { class: 'actions' }, r.summary.map((s) => h('li', {}, s)))))
+  }
+  if (r.findings?.length) {
+    g.append(h('div', { class: 'section' }, h('h3', {}, 'Why'),
+      r.findings.map((f) => h('div', { class: 'finding' }, h('div', { 'aria-hidden': 'true' }, SEV_ICON[f.severity] || '•'),
+        h('div', {}, h('b', {}, f.title), h('span', {}, f.detail), f.id === 'ADDRESS_POISONING' ? addressDiff(f.detail) : null)))))
+  }
+  g.append(h('div', { class: 'section' }, h('h3', {}, 'In plain words'),
+    h('div', { class: 'explain draft', id: 'explain' }, h('span', { class: 'caret' })),
+    h('div', { class: 'explain-meta' }, h('span', { id: 'explain-src' }, ''), h('span', { id: 'explain-time' }, ''))))
+}
+
+async function explain () {
+  if (!state.report || !state.input) return
+  explainCtl?.abort()
+  const ctl = explainCtl = new AbortController()
+  const box = $('explain'); const src = $('explain-src'); const time = $('explain-time')
+  if (!box) return
+  const llm = state.llm
+  if (!llm || llm.status === 'loading' || llm.status === 'idle') {
+    box.className = 'explain draft'; box.replaceChildren('Waiting for the local model to load…'); src.textContent = ''; return
+  }
+  box.className = 'explain draft'; box.replaceChildren(h('span', { class: 'caret' }))
+  src.textContent = `${modelName(llm.model)} is writing…`
+  time.textContent = ''
+  const t0 = performance.now()
+  let text = ''
+  try {
+    const res = await fetch('/api/explain', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ input: state.input, lang: $('lang').value }), signal: ctl.signal })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`)
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = ''
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buf += dec.decode(value, { stream: true })
+      let i
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const ev = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1)
+        if (ctl !== explainCtl) return
+        if (ev.type === 'delta') {
+          text += ev.text
+          const visible = text.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trimStart()
+          box.replaceChildren(visible || '', h('span', { class: 'caret' }))
+        } else if (ev.type === 'retry') {
+          text = ''
+          src.textContent = 'First answer contradicted the verdict. Asking again…'
+          box.replaceChildren(h('span', { class: 'caret' }))
+        } else if (ev.type === 'done') {
+          const secs = ((performance.now() - t0) / 1000).toFixed(1)
+          if (ev.source === 'llm') {
+            box.className = 'explain'; box.replaceChildren(ev.text)
+            src.textContent = `Written by ${modelName(llm.model)} on this device · checked against the verdict`
+            time.textContent = `${secs}s`
+          } else {
+            box.className = 'explain draft'
+            box.replaceChildren(ev.reason === 'rejected'
+              ? 'The model\'s explanation contradicted the verdict, so it was discarded. The findings above are what matter.'
+              : 'No local model loaded. The verdict and findings above come from the rules alone.')
+            src.textContent = 'Rules only'
+          }
+        }
+      }
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') return
+    box.className = 'explain draft'; box.replaceChildren(`Couldn't get an explanation: ${e.message}`)
+  }
+}
+
+$('lang').addEventListener('change', () => explain())
+
+/* ---------- boot ---------- */
+;(async () => {
+  try {
+    state.scenarios = await api('/api/scenarios')
+  } catch (e) { $('guard').append(h('p', { class: 'err' }, `Couldn't reach the local server: ${e.message}`)); return }
+  renderScenarios()
+  await pollModel()
+  select(state.scenarios[0]?.name || 'custom')
+})()
+</script>
+</body>
+</html>
