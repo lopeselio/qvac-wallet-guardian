@@ -1,10 +1,10 @@
 name: Pages
 # Builds the hosted, rules-only demo and publishes it to the gh-pages branch,
-# which GitHub Pages serves at https://lopeselio.github.io/qvac-wallet-guardian/
+# which GitHub Pages serves at https://wallet-guardian.qvac.lopeselio.online
 on:
   push:
     branches: [main]
-    paths: [ui/**, site/**, src/**, examples/**, scripts/**, package.json, package-lock.json]
+    paths: [ui/**, site/**, src/**, examples/**, scripts/**, package.json, package-lock.json, .github/workflows/pages.yml]
   workflow_dispatch:
 permissions:
   contents: write
@@ -26,6 +26,8 @@ jobs:
         run: |
           cd site/dist
           touch .nojekyll
+          # This job replaces the whole branch, so it writes the custom domain too.
+          echo wallet-guardian.qvac.lopeselio.online > CNAME
           git init -q -b gh-pages
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
