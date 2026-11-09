@@ -33,7 +33,7 @@ transacciones.
 
 ## Web UI
 
-**Try it in your browser: https://lopeselio.github.io/qvac-wallet-guardian/**
+**Try it in your browser: https://wallet-guardian.qvac.lopeselio.online**
 
 The hosted page runs the real rule engine in your browser (nothing is sent anywhere). The local QVAC explanation needs Node and your own hardware, so for that, run the UI locally:
 
